@@ -236,7 +236,7 @@ class KDLKinematics(object):
     # @param eps     The precision for the position, used to end the iterations,
     #                If None, epsilon is set.
     # @return np.array of joint angles needed to reach the pose or None if no solution was found.
-    def inverse(self, pose, q_guess=None, min_joints=None, max_joints=None, maxiter=100, \
+    def inverse(self, pose, q_guess=None, min_joints=None, max_joints=None, maxiter=1000, \
                 eps=sys.float_info.epsilon):
         pos, rot = PoseConv.to_pos_rot(pose)
         pos_kdl = kdl.Vector(pos[0, 0], pos[1, 0], pos[2, 0])
@@ -473,35 +473,23 @@ def main():
     #     robot = Robot.from_xml_string(f.read())
     #     f.close()
 
-    f = open('/home/shahbaz/Software/mjc_models/yumi_ABB_left.urdf', 'r')
+    f = open('/home/shahbaz/Software/yumi_kinematics/yumikin/models/yumi_ABB_left.urdf', 'r')
     # f = open('/home/shahbaz/Software/mjc_models/yumi_gps_generated.urdf', 'r')
     robot = Robot.from_xml_string(f.read())
 
     if True:
         import random
         base_link = robot.get_root()
-        # base_link = "torso_lift_link" # pr2
-        # end_link = robot.link_map.keys()[random.randint(0, len(robot.link_map)-1)]
-        # end_link = 'left_tool0'
         end_link = 'left_contact_point'
-        # end_link = 'l_gripper_tool_frame' # pr2
-        print
         "Root link: %s; End link: %s" % (base_link, end_link)
         kdl_kin = KDLKinematics(robot, base_link, end_link)
-        # q = kdl_kin.random_joint_angles()
-        # yumi init pos
-        # q=np.array([-0.79005,  -1.79093,  0.77403,  0.74101,  2.11053,  1.07796,  -1.90117])
-        # init pos for mujoco peg experiments
-        # q=np.array([0.4, -2.2, -0.7, 0.35, 0.7, 0., -1.])
-        # q=np.array([-1., -1.6667, 0.8585, 0.8341, 2.094, 1.5611, -2.1126]) # new init pos
-        # q=np.array([-1.478, -1.6667, 1.392, -0.283, 2.391, 0.827, -1.530]) # test z=0 pos
-        # q=np.array([-1.134, -1.750, 2.351, -0.193, 3.840, 0.465, -3.561])
+        # od = np.array([0.46393511, 0.05887059, 0.01717972])
+        od = np.array([0.46393511, 0.105, 0.01717972])
+        Rd = np.array([[-0.00612597, 0.99929079, 0.03715365],
+                        [ 0.01964827, 0.03726746, -0.99911215],
+                        [-0.99978819, -0.00539052, -0.01986263]])
 
-        # points for the stable vic yumi mjc exp
-        q_s = np.array([-1.28, -1.14, 0.92, 0.8, 1.89, 1.67, -2.6])  # start point
-
-        q_e = np.array([-1.63688, -1.22777, 1.28612, 0.446995, 2.21936, 1.57011, 0.47748])  # inserted point
-
+        q_e = np.array([-1.63688, -1.22777, 1.28612, 0.446995, 2.21936, 1.57011, 0.47748])
         q = q_e
 
         print ("Angles:", q)
@@ -512,17 +500,22 @@ def main():
         #          [0.01336883,  0.04795683,  0.99875994, 0.45],
         #          [-0.99979569, - 0.01450392, 0.01407912,  0.01],
         #          [0.,          0.,          0.,          1.]])
-        # #pr2 init pos
-        # # q=np.array([0.40493573,  -0.26709164,   0.9860822,   -0.58687217, -30.29001274, -0.59461712,  19.50285032])
-        #
-        # q_new = kdl_kin.inverse(pose_e_n)
-        # print "IK (not necessarily the same):", q_new
-        # if q_new is not None:
-        #     pose_new = kdl_kin.forward(q_new)
-        #     print "FK on IK:", pose_new
-        #     print "Error:", np.linalg.norm(pose_new * pose**-1 - np.mat(np.eye(4)))
-        # else:
-        #     print "IK failure"
+        pose_e_n = np.zeros((4,4))
+        pose_e_n[:3, :3] = Rd
+        pose_e_n[:3, 3] = od
+        pose_e_n[3, 3] = 1.
+
+        #pr2 init pos
+        # q=np.array([0.40493573,  -0.26709164,   0.9860822,   -0.58687217, -30.29001274, -0.59461712,  19.50285032])
+
+        q_new = kdl_kin.inverse(pose_e_n, q_guess=q)
+        print ("IK (not necessarily the same):", q_new)
+        if q_new is not None:
+            pose_new = kdl_kin.forward(q_new)
+            print ("FK on IK:", pose_new)
+            print ("Error:", np.linalg.norm(pose_new * pose**-1 - np.mat(np.eye(4))))
+        else:
+            print ("IK failure")
         # J = kdl_kin.jacobian(q)
         # print "Jacobian:", J
         # M = kdl_kin.inertia(q)
