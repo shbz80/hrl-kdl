@@ -491,24 +491,27 @@ def main():
 
         q_e = np.array([-1.63688, -1.22777, 1.28612, 0.446995, 2.21936, 1.57011, 0.47748])
         q = q_e
-
+        q = np.array([-1.14, -1.21, 0.965, 0.728, 1.97, 1.49, 0.])
         print ("Angles:", q)
         pose = kdl_kin.forward(q)
         print ("FK:", pose)
-
+        # pose_delta = np.array([0.1, -0.1, 0.05]) #pos 3
+        pose_delta = np.array([0.1, 0.1, 0.05])  # pos 2
+        pose[:3,3] = pose[:3,3] + pose_delta.reshape((3,1))
+        print("New pose:", pose)
         # pose_e_n = np.array([[0.01516113, -0.9987441,   0.04775313,  0.4],
         #          [0.01336883,  0.04795683,  0.99875994, 0.45],
         #          [-0.99979569, - 0.01450392, 0.01407912,  0.01],
         #          [0.,          0.,          0.,          1.]])
-        pose_e_n = np.zeros((4,4))
-        pose_e_n[:3, :3] = Rd
-        pose_e_n[:3, 3] = od
-        pose_e_n[3, 3] = 1.
+        # pose_e_n = np.zeros((4,4))
+        # pose_e_n[:3, :3] = Rd
+        # pose_e_n[:3, 3] = od
+        # pose_e_n[3, 3] = 1.
 
         #pr2 init pos
         # q=np.array([0.40493573,  -0.26709164,   0.9860822,   -0.58687217, -30.29001274, -0.59461712,  19.50285032])
 
-        q_new = kdl_kin.inverse(pose_e_n, q_guess=q)
+        q_new = kdl_kin.inverse(pose, q_guess=q)
         print ("IK (not necessarily the same):", q_new)
         if q_new is not None:
             pose_new = kdl_kin.forward(q_new)
