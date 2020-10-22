@@ -32,6 +32,10 @@
 import numpy as np
 import sys
 
+# import importlib.util
+# spec = importlib.util.spec_from_file_location("PyKDL", "/path/to/file.py")
+# foo = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(foo)
 import PyKDL as kdl
 # import rospy
 
@@ -473,7 +477,7 @@ def main():
     #     robot = Robot.from_xml_string(f.read())
     #     f.close()
 
-    f = open('/home/shahbaz/Software/yumi_kinematics/yumikin/models/yumi_ABB_left.urdf', 'r')
+    f = open('/home/shahbaz/Software/yumikin/models/yumi_ABB_left.urdf', 'r')
     # f = open('/home/shahbaz/Software/mjc_models/yumi_gps_generated.urdf', 'r')
     robot = Robot.from_xml_string(f.read())
 

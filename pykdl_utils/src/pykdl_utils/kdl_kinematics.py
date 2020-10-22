@@ -452,61 +452,95 @@ def main():
         print("\tLoad the URDF from the parameter server.")
         sys.exit(1)
 
-    if len(sys.argv) > 2:
-        usage()
-    if len(sys.argv) == 2 and (sys.argv[1] == "-h" or sys.argv[1] == "--help"):
-        usage()
-    if (len(sys.argv) == 1):
-        robot = Robot.from_parameter_server()
-    else:
-        f = file(sys.argv[1], 'r')
-        robot = Robot.from_xml_string(f.read())
-        f.close()
+    # if len(sys.argv) > 2:
+    #     usage()
+    # if len(sys.argv) == 2 and (sys.argv[1] == "-h" or sys.argv[1] == "--help"):
+    #     usage()
+    # if (len(sys.argv) == 1):
+    #     robot = Robot.from_parameter_server()
+    # else:
+    #     f = open(sys.argv[1], 'r')
+    #     robot = Robot.from_xml_string(f.read())
+    #     f.close()
+
+    f = open('/home/shahbaz/Software/yumikin/models/yumi_ABB_left.urdf', 'r')
+    # f = open('/home/shahbaz/Software/mjc_models/yumi_gps_generated.urdf', 'r')
+    robot = Robot.from_xml_string(f.read())
 
     if True:
         import random
         base_link = robot.get_root()
-        end_link = robot.link_map.keys()[random.randint(0, len(robot.link_map)-1)]
-        print "Root link: %s; Random end link: %s" % (base_link, end_link)
+        end_link = 'left_contact_point'
+        "Root link: %s; End link: %s" % (base_link, end_link)
         kdl_kin = KDLKinematics(robot, base_link, end_link)
-        q = kdl_kin.random_joint_angles()
-        print "Random angles:", q
+        # od = np.array([0.46393511, 0.05887059, 0.01717972])
+        od = np.array([0.46393511, 0.105, 0.01717972])
+        Rd = np.array([[-0.00612597, 0.99929079, 0.03715365],
+                        [ 0.01964827, 0.03726746, -0.99911215],
+                        [-0.99978819, -0.00539052, -0.01986263]])
+
+        q_e = np.array([-1.63688, -1.22777, 1.28612, 0.446995, 2.21936, 1.57011, 0.47748])
+        q = q_e
+        q = np.array([-1.14, -1.21, 0.965, 0.728, 1.97, 1.49, 0.])
+        print ("Angles:", q)
         pose = kdl_kin.forward(q)
-        print "FK:", pose
-        q_new = kdl_kin.inverse(pose)
-        print "IK (not necessarily the same):", q_new
+        print ("FK:", pose)
+        # pose_delta = np.array([0.1, -0.1, 0.05]) #pos 3
+        pose_delta = np.array([0.1, 0.1, 0.05])  # pos 2
+        pose[:3,3] = pose[:3,3] + pose_delta.reshape((3,1))
+        print("New pose:", pose)
+        # pose_e_n = np.array([[0.01516113, -0.9987441,   0.04775313,  0.4],
+        #          [0.01336883,  0.04795683,  0.99875994, 0.45],
+        #          [-0.99979569, - 0.01450392, 0.01407912,  0.01],
+        #          [0.,          0.,          0.,          1.]])
+        # pose_e_n = np.zeros((4,4))
+        # pose_e_n[:3, :3] = Rd
+        # pose_e_n[:3, 3] = od
+        # pose_e_n[3, 3] = 1.
+
+        #pr2 init pos
+        # q=np.array([0.40493573,  -0.26709164,   0.9860822,   -0.58687217, -30.29001274, -0.59461712,  19.50285032])
+
+        q_new = kdl_kin.inverse(pose, q_guess=q)
+        print ("IK (not necessarily the same):", q_new)
         if q_new is not None:
             pose_new = kdl_kin.forward(q_new)
-            print "FK on IK:", pose_new
-            print "Error:", np.linalg.norm(pose_new * pose**-1 - np.mat(np.eye(4)))
+            print ("FK on IK:", pose_new)
+            print ("Error:", np.linalg.norm(pose_new * pose**-1 - np.mat(np.eye(4))))
         else:
-            print "IK failure"
-        J = kdl_kin.jacobian(q)
-        print "Jacobian:", J
-        M = kdl_kin.inertia(q)
-        print "Inertia matrix:", M
-        if False:
-            M_cart = kdl_kin.cart_inertia(q)
-            print "Cartesian inertia matrix:", M_cart
+            print ("IK failure")
+        # J = kdl_kin.jacobian(q)
+        # print "Jacobian:", J
+        # M = kdl_kin.inertia(q)
+        # w,v=LA.eig(M)
+        # print "Inertia matrix:", M
+        # print "Diagonal inertia vector:", w
+        # if False:
+        #     M_cart = kdl_kin.cart_inertia(q)
+        #     print "Cartesian inertia matrix:", M_cart
 
-    if True:
-        rospy.init_node("kdl_kinematics")
-        num_times = 20
-        while not rospy.is_shutdown() and num_times > 0:
-            base_link = robot.get_root()
-            end_link = robot.link_map.keys()[random.randint(0, len(robot.link_map)-1)]
-            print "Root link: %s; Random end link: %s" % (base_link, end_link)
-            kdl_kin = KDLKinematics(robot, base_link, end_link)
-            q = kdl_kin.random_joint_angles()
-            pose = kdl_kin.forward(q)
-            q_guess = kdl_kin.random_joint_angles()
-            q_new = kdl_kin.inverse(pose, q_guess)
-            if q_new is None:
-                print "Bad IK, trying search..."
-                q_search = kdl_kin.inverse_search(pose)
-                pose_search = kdl_kin.forward(q_search)
-                print "Result error:", np.linalg.norm(pose_search * pose**-1 - np.mat(np.eye(4)))
-            num_times -= 1
+    # if False:
+    #     rospy.init_node("kdl_kinematics")
+    #     num_times = 20
+    #     while not rospy.is_shutdown() and num_times > 0:
+    #         base_link = robot.get_root()
+    #         end_link = robot.link_map.keys()[random.randint(0, len(robot.link_map) - 1)]
+    #         print
+    #         ("Root link: %s; Random end link: %s" % (base_link, end_link))
+    #         kdl_kin = KDLKinematics(robot, base_link, end_link)
+    #         q = kdl_kin.random_joint_angles()
+    #         pose = kdl_kin.forward(q)
+    #         q_guess = kdl_kin.random_joint_angles()
+    #         q_new = kdl_kin.inverse(pose, q_guess)
+    #         if q_new is None:
+    #             print
+    #             ("Bad IK, trying search...")
+    #             q_search = kdl_kin.inverse_search(pose)
+    #             pose_search = kdl_kin.forward(q_search)
+    #             print
+    #             ("Result error:", np.linalg.norm(pose_search * pose ** -1 - np.mat(np.eye(4))))
+    #         num_times -= 1
+
 
 if __name__ == "__main__":
     main()

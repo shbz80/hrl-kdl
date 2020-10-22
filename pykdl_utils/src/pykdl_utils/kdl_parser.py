@@ -57,8 +57,9 @@ def urdf_joint_to_kdl_joint(jnt):
     origin_frame = urdf_pose_to_kdl_frame(jnt.origin)
     if jnt.joint_type == 'fixed':
         temp = kdl.Joint
-        # return kdl.Joint(jnt.name, kdl.Joint.None)
-        return kdl.Joint(jnt.name, getattr(kdl.Joint, 'None'))
+        #return kdl.Joint(jnt.name, kdl.Joint.None)
+        return kdl.Joint(jnt.name, getattr(kdl.Joint, 'Fixed'))
+        #return kdl.Joint(jnt.name, getattr(kdl.Joint, JointType.Fixed))
 
     axis = kdl.Vector(*jnt.axis)
     if jnt.joint_type == 'revolute':
@@ -72,7 +73,7 @@ def urdf_joint_to_kdl_joint(jnt):
                          origin_frame.M * axis, kdl.Joint.TransAxis)
     print ("Unknown joint type: %s." % jnt.joint_type)
     # return kdl.Joint(jnt.name, kdl.Joint.None)
-    return kdl.Joint(jnt.name, getattr(kdl.Joint, 'None'))
+    return kdl.Joint(jnt.name, getattr(kdl.Joint, 'Fixed'))
 
 def urdf_inertial_to_kdl_rbi(i):
     origin = urdf_pose_to_kdl_frame(i.origin)
